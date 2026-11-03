@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+{% set has_filters = f.q or f.theme or f.status or f.condition or f.min_parts or f.max_parts or f.year_min or f.year_max %}
+
+<div class="list-header">
+  <h1>My sets <span class="count">{{ sets|length }}</span></h1>
+  <div class="view-toggle">
+    <a class="{{ 'active' if view != 'table' else '' }}" href="{{ request.url.include_query_params(view='cards') }}">Cards</a>
+    <a class="{{ 'active' if view == 'table' else '' }}" href="{{ request.url.include_query_params(view='table') }}">Table</a>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/">
+  <input type="hidden" name="view" value="{{ view }}">
+  <input type="hidden" name="sort" value="{{ sort }}">
+  <input type="hidden" name="dir" value="{{ dir }}">
+
+  <div class="filter-search">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+      <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <input type="search" name="q" value="{{ f.q }}" placeholder="Search name, ID, notes, location…">
+  </div>
+
+  <div class="filter-grid">
+    <label class="field">
+      <span class="field-label">Theme</span>
+      <select name="theme">
+        <option value="">All</option>
+        {% for t in themes %}<option value="{{ t }}" {% if f.theme == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field-label">Status</span>
+      <select name="status">
+        <option value="">Any</option>
+        {% for st in statuses %}<option value="{{ st.value }}" {% if f.status == st.value %}selected{% endif %}>{{ st.value }}</option>{% endfor %}
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field-label">Condition</span>
+      <select name="condition">
+        <option value="">Any</option>
+        {% for c in conditions %}<option value="{{ c.value }}" {% if f.condition == c.value %}selected{% endif %}>{{ c.value }}</option>{% endfor %}
+      </select>
+    </label>
+
+    <div class="field">
+      <span class="field-label">Parts</span>
+      <div class="range-inputs">
+        <input type="number" name="min_parts" min="0" value="{{ f.min_parts }}" placeholder="min">
+        <span class="dash">–</span>
+        <input type="number" name="max_parts" min="0" value="{{ f.max_parts }}" placeholder="max">
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Year</span>
+      <div class="range-inputs">
+        <input type="number" name="year_min" min="1949" value="{{ f.year_min }}" placeholder="from">
+        <span class="dash">–</span>
+        <input type="number" name="year_max" min="1949" value="{{ f.year_max }}" placeholder="to">
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-actions">
+    <button type="submit" class="btn primary">Apply</button>
+    {% if has_filters %}<a class="btn ghost" href="/?view={{ view }}">Clear</a>{% endif %}
+  </div>
+</form>
+
+{% if not sets %}
+  {% if has_filters %}
+    <p class="empty">No sets match these filters. <a href="/?view={{ view }}">Clear filters</a>.</p>
+  {% else %}
+    <p class="empty">No sets yet. <a href="/sets/new">Add your first set</a>.</p>
+  {% endif %}
+
+{% elif view == 'table' %}
+  {% set columns = [
+    ('Set', 'name'), ('ID', 'set_num'), ('Theme', 'theme'),
+    ('Parts', 'num_parts'), ('Year', 'year'), ('Condition', 'condition'),
+    ('Status', 'status'), ('Location', 'storage_location'), ('Purchased', 'purchased_date')
+  ] %}
+  <div class="table-wrap">
+    <table class="sets-table">
+      <colgroup>
+        <col class="c-img">
+        <col class="c-name">
+        <col class="c-id">
+        <col class="c-theme">
+        <col class="c-parts">
+        <col class="c-year">
+        <col class="c-cond">
+        <col class="c-status">
+        <col class="c-loc">
+        <col class="c-date">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="tthumb-h"></th>
+          {% for label, key in columns %}
+            {% set is_active = sort == key %}
+            {% set next_dir = 'desc' if (is_active and dir == 'asc') else 'asc' %}
+            <th class="{{ 'sorted' if is_active else '' }}{{ ' num' if key in ['num_parts', 'year'] else '' }}">
+              <a href="{{ request.url.include_query_params(sort=key, dir=next_dir) }}">
+                {{ label }}{% if is_active %}<span class="arrow">{{ '▲' if dir == 'asc' else '▼' }}</span>{% endif %}
+              </a>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sets %}
+        <tr onclick="location.href='/sets/{{ s.id }}'">
+          <td class="tthumb">{% if s.catalog.image_path %}<img src="/assets/{{ s.catalog.image_path }}" alt="" loading="lazy">{% endif %}</td>
+          <td class="tname"><a href="/sets/{{ s.id }}">{{ s.catalog.name }}</a></td>
+          <td class="muted">{{ s.set_num }}</td>
+          <td>{{ s.catalog.theme or '—' }}</td>
+          <td class="num">{{ s.catalog.num_parts }}</td>
+          <td class="num">{{ s.catalog.year or '—' }}</td>
+          <td>{{ s.condition }}</td>
+          <td><span class="badge status">{{ s.status }}</span></td>
+          <td>{{ s.storage_location or '—' }}</td>
+          <td class="muted">{{ s.purchased_date.isoformat() if s.purchased_date else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% else %}
+  <div class="grid">
+    {% for s in sets %}
+    <a class="card" href="/sets/{{ s.id }}">
+      <div class="thumb">
+        {% if s.catalog.image_path %}
+          <img src="/assets/{{ s.catalog.image_path }}" alt="{{ s.catalog.name }}" loading="lazy">
+        {% else %}
+          <div class="noimg">No image</div>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <div class="setnum">{{ s.set_num }}</div>
+        <div class="name">{{ s.catalog.name }}</div>
+        <div class="meta">{{ s.catalog.num_parts }} parts{% if s.catalog.year %} · {{ s.catalog.year }}{% endif %}</div>
+        <div class="badges">
+          {% if s.catalog.theme %}<span class="badge theme">{{ s.catalog.theme }}</span>{% endif %}
+          <span class="badge status">{{ s.status }}</span>
+          <span class="badge cond">{{ s.condition }}</span>
+        </div>
+        {% if s.storage_location %}<div class="loc">📍 {{ s.storage_location }}</div>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

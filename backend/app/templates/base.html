@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Lego Inventory{% endblock %}</title>
+  <script>
+    // Apply the saved (or system) theme before first paint to avoid a flash.
+    (function () {
+      try {
+        var saved = localStorage.getItem('theme');
+        var theme = saved ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+    function toggleTheme() {
+      var root = document.documentElement;
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) {}
+    }
+  </script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  {% set active = 'minifigs' if request.url.path.startswith('/minifigs')
+       else ('parts' if request.url.path.startswith('/parts') else 'sets') %}
+  <header class="topbar">
+    <a href="/" class="brand">
+      <svg class="brick-logo" viewBox="0 0 56 36" width="30" height="20" aria-hidden="true" focusable="false">
+        <rect x="8"  y="3" width="9" height="10" rx="2.5"/>
+        <rect x="20" y="3" width="9" height="10" rx="2.5"/>
+        <rect x="32" y="3" width="9" height="10" rx="2.5"/>
+        <rect x="44" y="3" width="9" height="10" rx="2.5"/>
+        <rect x="4"  y="11" width="49" height="22" rx="3"/>
+        <ellipse class="stud-top" cx="12.5" cy="5.5" rx="3.6" ry="1.5"/>
+        <ellipse class="stud-top" cx="24.5" cy="5.5" rx="3.6" ry="1.5"/>
+        <ellipse class="stud-top" cx="36.5" cy="5.5" rx="3.6" ry="1.5"/>
+        <ellipse class="stud-top" cx="48.5" cy="5.5" rx="3.6" ry="1.5"/>
+      </svg>
+      <span>Lego Inventory</span>
+    </a>
+    <nav class="nav">
+      <a href="/" class="{{ 'active' if active == 'sets' else '' }}">Sets</a>
+      <a href="/parts" class="{{ 'active' if active == 'parts' else '' }}">Parts</a>
+      <a href="/minifigs" class="{{ 'active' if active == 'minifigs' else '' }}">Minifigs</a>
+    </nav>
+    <div class="topbar-actions">
+      <button type="button" class="btn icon-btn" onclick="toggleTheme()"
+              aria-label="Toggle dark mode" title="Toggle light / dark">
+        <svg class="icon icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
+        </svg>
+        <svg class="icon icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="4.2" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="12" y1="1.5" x2="12" y2="4"/>
+            <line x1="12" y1="20" x2="12" y2="22.5"/>
+            <line x1="1.5" y1="12" x2="4" y2="12"/>
+            <line x1="20" y1="12" x2="22.5" y2="12"/>
+            <line x1="4.6" y1="4.6" x2="6.3" y2="6.3"/>
+            <line x1="17.7" y1="17.7" x2="19.4" y2="19.4"/>
+            <line x1="4.6" y1="19.4" x2="6.3" y2="17.7"/>
+            <line x1="17.7" y1="6.3" x2="19.4" y2="4.6"/>
+          </g>
+        </svg>
+      </button>
+      {% if active == 'parts' %}
+        <a href="/parts/new" class="btn primary">+ Add part</a>
+      {% elif active == 'minifigs' %}
+        <a href="/minifigs/new" class="btn primary">+ Add minifig</a>
+      {% else %}
+        <a href="/sets/new" class="btn primary">+ Add set</a>
+      {% endif %}
+    </div>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

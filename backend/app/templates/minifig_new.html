@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Add a minifig · Minifigs{% endblock %}
+{% block content %}
+<a href="/minifigs" class="back">← All minifigs</a>
+<h1>Add a loose minifig</h1>
+<p class="empty">Minifigs you own that aren't part of a set. Minifigs inside your sets are tracked automatically.</p>
+
+<form class="search-box" method="get" action="/minifigs/new">
+  <div class="filter-search">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+      <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <input type="search" name="q" value="{{ q }}" placeholder="Search Rebrickable by name…">
+  </div>
+  <button type="submit" class="btn">Search</button>
+</form>
+
+{% if q %}
+  <div class="search-results">
+    {% if results %}
+      {% for r in results %}
+      <a class="result {{ 'selected' if form and form.fig_num == r.fig_num else '' }}"
+         href="/minifigs/new?q={{ q | urlencode }}&fig_num={{ r.fig_num | urlencode }}">
+        <div class="result-thumb">{% if r.img_url %}<img src="{{ r.img_url }}" alt="" loading="lazy">{% endif %}</div>
+        <div class="result-info">
+          <div class="result-name">{{ r.name }}</div>
+          <div class="result-meta">{{ r.fig_num }}</div>
+        </div>
+        <span class="result-pick">Select</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <p class="empty">No matches for "{{ q }}".</p>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form method="post" action="/minifigs" class="form">
+  <label>Minifig number
+    <input name="fig_num" placeholder="e.g. fig-000123" required value="{{ form.fig_num if form else '' }}">
+    <small>Pick one from search above, or paste a Rebrickable minifig number.</small>
+  </label>
+  <label>Quantity
+    <input type="number" name="quantity" min="1" value="{{ form.quantity if form else '1' }}" required>
+  </label>
+  <label>Notes
+    <textarea name="notes" rows="2">{{ form.notes if form else '' }}</textarea>
+  </label>
+  <button type="submit" class="btn primary">Add minifig</button>
+</form>
+{% endblock %}

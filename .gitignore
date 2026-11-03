@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Secrets
+.env
+
+# Local dev data (downloaded images, etc). Keep the dir, ignore contents.
+data/assets/*
+!data/assets/.gitkeep

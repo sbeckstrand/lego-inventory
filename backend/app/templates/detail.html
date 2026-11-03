@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ catalog.name }} · Lego Inventory{% endblock %}
+{% block content %}
+<a href="/" class="back">← All sets</a>
+
+<div class="detail">
+  <div class="detail-img">
+    {% if catalog.image_path %}
+      <img src="/assets/{{ catalog.image_path }}" alt="{{ catalog.name }}">
+    {% else %}
+      <div class="noimg">No image</div>
+    {% endif %}
+  </div>
+
+  <div class="detail-info">
+    <h1>{{ catalog.name }}</h1>
+    <p class="sub">{{ owned.set_num }} · {{ catalog.num_parts }} parts{% if catalog.year %} · {{ catalog.year }}{% endif %}{% if catalog.theme %} · {{ catalog.theme }}{% endif %}</p>
+
+    <form method="post" action="/sets/{{ owned.id }}/edit" class="form">
+      <label>Purchased date
+        <input type="date" name="purchased_date"
+               value="{{ owned.purchased_date.isoformat() if owned.purchased_date else '' }}">
+      </label>
+      <label>Storage location
+        <input name="storage_location" value="{{ owned.storage_location or '' }}">
+      </label>
+      <label>Condition
+        <select name="condition">
+          {% for c in conditions %}
+            <option value="{{ c.value }}" {% if owned.condition == c.value %}selected{% endif %}>{{ c.value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Status
+        <select name="status">
+          {% for st in statuses %}
+            <option value="{{ st.value }}" {% if owned.status == st.value %}selected{% endif %}>{{ st.value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Notes
+        <textarea name="notes" rows="3">{{ owned.notes or '' }}</textarea>
+      </label>
+      <button type="submit" class="btn primary">Save</button>
+    </form>
+
+    <div class="row-actions">
+      <form method="post" action="/sets/{{ owned.id }}/refresh">
+        <button type="submit" class="btn">↻ Refresh from API</button>
+      </form>
+      <form method="post" action="/sets/{{ owned.id }}/delete"
+            onsubmit="return confirm('Delete this set from your inventory?');">
+        <button type="submit" class="btn danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<section class="listing">
+  <h2>Minifigures {% if catalog.minifigs %}<span class="count">{{ catalog.minifigs|length }}</span>{% endif %}</h2>
+  {% if catalog.minifigs %}
+  <div class="grid small">
+    {% for f in catalog.minifigs %}
+    <div class="card static">
+      <div class="thumb">
+        {% if f.img_url %}<img src="{{ f.img_url }}" alt="{{ f.name }}" loading="lazy">{% else %}<div class="noimg">No image</div>{% endif %}
+      </div>
+      <div class="card-body">
+        <div class="name">{{ f.name }}</div>
+        <div class="meta">×{{ f.quantity }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}<p class="empty">No minifigures in this set.</p>{% endif %}
+</section>
+
+<section class="listing">
+  <h2>Parts {% if catalog.parts %}<span class="count">{{ catalog.parts|length }}</span>{% endif %}</h2>
+  {% if catalog.parts %}
+  <table class="parts-table">
+    <thead><tr><th></th><th>Part</th><th>Color</th><th>Qty</th></tr></thead>
+    <tbody>
+    {% for p in catalog.parts %}
+      <tr>
+        <td class="pthumb">{% if p.img_url %}<img src="{{ p.img_url }}" alt="" loading="lazy">{% endif %}</td>
+        <td>{{ p.name }} <span class="pnum">{{ p.part_num }}</span></td>
+        <td>{{ p.color }}</td>
+        <td>{{ p.quantity }}{% if p.is_spare %} <span class="spare">spare</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="empty">No parts data.</p>{% endif %}
+</section>
+{% endblock %}

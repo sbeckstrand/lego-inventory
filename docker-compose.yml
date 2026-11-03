@@ -1,0 +1,45 @@
+# Local dev stack. Mirrors the eventual k8s topology:
+#   - app      -> a Deployment
+#   - db       -> your external Postgres server (here, a throwaway container)
+#   - ./data/assets:/data/assets -> an NFS-backed PVC mounted at /data/assets
+#
+# Copy .env.example to .env and add your Rebrickable API key first.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lego
+      POSTGRES_PASSWORD: lego
+      POSTGRES_DB: lego
+    ports:
+      # Host 5433 -> container 5432, to avoid clashing with a Postgres you
+      # already run on the host. App<->db traffic uses 5432 on the internal net.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lego -d lego"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://lego:lego@db:5432/lego
+      REBRICKABLE_API_KEY: ${REBRICKABLE_API_KEY:-}
+      ASSETS_DIR: /data/assets
+      UVICORN_RELOAD: "1"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Live-reload the source in dev.
+      - ./backend:/app
+      # Stand-in for the NFS mount used in prod.
+      - ./data/assets:/data/assets
+
+volumes:
+  pgdata:

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ fig.name }} · Minifigs{% endblock %}
+{% block content %}
+<a href="/minifigs" class="back">← All minifigs</a>
+
+<div class="detail">
+  <div class="detail-img">
+    {% if fig.img_url %}<img src="{{ fig.img_url }}" alt="{{ fig.name }}">{% else %}<div class="noimg">No image</div>{% endif %}
+  </div>
+
+  <div class="detail-info">
+    <h1>{{ fig.name }}</h1>
+    <p class="sub">{{ fig.fig_num }}</p>
+
+    <div class="stat-row">
+      <div class="stat"><div class="stat-num">{{ total }}</div><div class="stat-label">Total owned</div></div>
+      <div class="stat"><div class="stat-num">{{ in_sets }}</div><div class="stat-label">In {{ set_count }} set{{ 's' if set_count != 1 else '' }}</div></div>
+      <div class="stat"><div class="stat-num">{{ loose_qty }}</div><div class="stat-label">Not in a set</div></div>
+    </div>
+
+    <form method="post" action="/minifigs/{{ fig.id }}/loose" class="form">
+      <label>Loose quantity (not in a set)
+        <input type="number" name="quantity" min="0" value="{{ loose_qty }}">
+      </label>
+      <label>Notes
+        <input name="notes" value="{{ (loose.notes or '') if loose else '' }}" placeholder="optional">
+      </label>
+      <button type="submit" class="btn primary">Save loose count</button>
+    </form>
+  </div>
+</div>
+
+<section class="listing">
+  <h2>In your sets {% if set_rows %}<span class="count">{{ set_count }}</span>{% endif %}</h2>
+  {% if set_rows %}
+  <div class="table-wrap">
+    <table class="sets-table">
+      <thead>
+        <tr><th>Set</th><th class="num">Qty / set</th><th class="num">Copies owned</th><th class="num">Total</th></tr>
+      </thead>
+      <tbody>
+        {% for sr in set_rows %}
+        <tr>
+          <td class="tname"><a href="/?q={{ sr.set.set_num }}">{{ sr.set.name }}</a> <span class="pnum">{{ sr.set.set_num }}</span></td>
+          <td class="num">{{ sr.qty }}</td>
+          <td class="num">{{ sr.copies }}</td>
+          <td class="num"><strong>{{ sr.contrib }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty">Not in any of your sets — it's {{ loose_qty }} loose.</p>
+  {% endif %}
+</section>
+{% endblock %}

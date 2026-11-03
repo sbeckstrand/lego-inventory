@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Add a part · Parts{% endblock %}
+{% block content %}
+{% set results = results | default([]) %}
+{% set q = q | default('') %}
+<a href="/parts" class="back">← All parts</a>
+<h1>Add a loose part</h1>
+<p class="empty">Parts you own that aren't part of a set. Parts inside your sets are tracked automatically.</p>
+
+<form class="search-box" method="get" action="/parts/new">
+  <div class="filter-search">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+      <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <input type="search" name="q" value="{{ q }}" placeholder="Search Rebrickable by name… e.g. minifig head">
+  </div>
+  <button type="submit" class="btn">Search</button>
+</form>
+
+{% if q %}
+  <div class="search-results">
+    {% if results %}
+      {% for r in results %}
+      <a class="result {{ 'selected' if form and form.part_num == r.part_num else '' }}"
+         href="/parts/new?q={{ q | urlencode }}&part_num={{ r.part_num | urlencode }}">
+        <div class="result-thumb">{% if r.img_url %}<img src="{{ r.img_url }}" alt="" loading="lazy">{% endif %}</div>
+        <div class="result-info">
+          <div class="result-name">{{ r.name }}</div>
+          <div class="result-meta">{{ r.part_num }}</div>
+        </div>
+        <span class="result-pick">Select</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <p class="empty">No matches for "{{ q }}".</p>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form method="post" action="/parts" class="form">
+  <label>Part number
+    <input name="part_num" placeholder="e.g. 3001" required value="{{ form.part_num if form else '' }}">
+    <small>Pick one from search above, or paste a part number. Then choose a color.</small>
+  </label>
+
+  <label>Color
+    <select name="color_id" required>
+      {% if not colors %}<option value="">(colors unavailable — check API key)</option>{% endif %}
+      {% for c in colors %}<option value="{{ c.id }}" {% if form and form.color_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </label>
+
+  <label>Quantity
+    <input type="number" name="quantity" min="1" value="{{ form.quantity if form else '1' }}" required>
+  </label>
+
+  <label>Notes
+    <textarea name="notes" rows="2">{{ form.notes if form else '' }}</textarea>
+  </label>
+
+  <button type="submit" class="btn primary">Add part</button>
+</form>
+{% endblock %}

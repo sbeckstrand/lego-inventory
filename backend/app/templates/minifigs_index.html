@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Minifigs · Lego Inventory{% endblock %}
+{% block content %}
+{% set has_filters = f.q or f.membership or f.min_qty or f.max_qty %}
+
+<div class="list-header">
+  <h1>Minifigs <span class="count">{{ total_count }}</span></h1>
+  <div class="view-toggle">
+    <a class="{{ 'active' if view != 'table' else '' }}" href="{{ request.url.include_query_params(view='cards') }}">Cards</a>
+    <a class="{{ 'active' if view == 'table' else '' }}" href="{{ request.url.include_query_params(view='table') }}">Table</a>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/minifigs">
+  <input type="hidden" name="view" value="{{ view }}">
+  <input type="hidden" name="sort" value="{{ sort }}">
+  <input type="hidden" name="dir" value="{{ dir }}">
+
+  <div class="filter-search">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+      <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <input type="search" name="q" value="{{ f.q }}" placeholder="Search minifig name or number…">
+  </div>
+
+  <div class="filter-grid">
+    <label class="field">
+      <span class="field-label">Membership</span>
+      <select name="membership">
+        <option value="" {% if not f.membership %}selected{% endif %}>All</option>
+        <option value="in_sets" {% if f.membership == 'in_sets' %}selected{% endif %}>In a set</option>
+        <option value="loose_only" {% if f.membership == 'loose_only' %}selected{% endif %}>Not in a set</option>
+        <option value="has_loose" {% if f.membership == 'has_loose' %}selected{% endif %}>Has loose</option>
+      </select>
+    </label>
+    <div class="field">
+      <span class="field-label">Total qty</span>
+      <div class="range-inputs">
+        <input type="number" name="min_qty" min="0" value="{{ f.min_qty }}" placeholder="min">
+        <span class="dash">–</span>
+        <input type="number" name="max_qty" min="0" value="{{ f.max_qty }}" placeholder="max">
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-actions">
+    <button type="submit" class="btn primary">Apply</button>
+    {% if has_filters %}<a class="btn ghost" href="/minifigs?view={{ view }}">Clear</a>{% endif %}
+  </div>
+</form>
+
+{% if not items %}
+  {% if has_filters %}
+    <p class="empty">No minifigs match these filters. <a href="/minifigs?view={{ view }}">Clear filters</a>.</p>
+  {% else %}
+    <p class="empty">No minifigs yet. They appear here once you add sets, or <a href="/minifigs/new">add a loose minifig</a>.</p>
+  {% endif %}
+
+{% elif view == 'table' %}
+  {% set columns = [('Minifig','name'),('Fig #','fig_num'),('In sets','in_sets'),('Loose','loose'),('Total','total'),('Sets','set_count')] %}
+  <div class="table-wrap">
+    <table class="sets-table">
+      <colgroup>
+        <col class="c-img"><col class="c-pname"><col class="c-pid">
+        <col class="c-pn"><col class="c-pn"><col class="c-pn"><col class="c-pn">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="tthumb-h"></th>
+          {% for label, key in columns %}
+            {% set is_active = sort == key %}
+            {% set next_dir = 'desc' if (is_active and dir == 'asc') else 'asc' %}
+            <th class="{{ 'sorted' if is_active else '' }}{{ ' num' if key in ['in_sets','loose','total','set_count'] else '' }}">
+              <a href="{{ request.url.include_query_params(sort=key, dir=next_dir) }}">{{ label }}{% if is_active %}<span class="arrow">{{ '▲' if dir == 'asc' else '▼' }}</span>{% endif %}</a>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr onclick="location.href='/minifigs/{{ it.fig.id }}'">
+          <td class="tthumb">{% if it.fig.img_url %}<img src="{{ it.fig.img_url }}" alt="" loading="lazy">{% endif %}</td>
+          <td class="tname"><a href="/minifigs/{{ it.fig.id }}">{{ it.fig.name }}</a></td>
+          <td class="muted">{{ it.fig.fig_num }}</td>
+          <td class="num">{{ it.in_sets }}</td>
+          <td class="num">{{ it.loose }}</td>
+          <td class="num"><strong>{{ it.total }}</strong></td>
+          <td class="num">{{ it.set_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% else %}
+  <div class="grid">
+    {% for it in items %}
+    <a class="card" href="/minifigs/{{ it.fig.id }}">
+      <div class="thumb">
+        {% if it.fig.img_url %}<img src="{{ it.fig.img_url }}" alt="{{ it.fig.name }}" loading="lazy">{% else %}<div class="noimg">No image</div>{% endif %}
+      </div>
+      <div class="card-body">
+        <div class="name">{{ it.fig.name }}</div>
+        <div class="meta">{{ it.fig.fig_num }}</div>
+        <div class="badges">
+          <span class="badge total">Qty {{ it.total }}</span>
+          {% if it.set_count %}<span class="badge status">in {{ it.set_count }} set{{ 's' if it.set_count != 1 else '' }}</span>{% endif %}
+          {% if it.loose %}<span class="badge theme">{{ it.loose }} loose</span>{% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}<a class="btn" href="{{ request.url.include_query_params(page=page - 1) }}">← Prev</a>{% endif %}
+  <span class="page-info">Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}<a class="btn" href="{{ request.url.include_query_params(page=page + 1) }}">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}
